@@ -1,14 +1,17 @@
-const errorFactory = (name, message, errors) => {
-  const e = new Error(message);
-  e.name = name;
-  e.errors = errors;
-  return e;
+class BaseError extends Error {
+  constructor(name, message, errors, ...rest) {
+    super(message, ...rest);
+    this.name = name;
+    this.message = message;
+    this.errors = errors;
+  }
 }
 
-const ValidationError = (message, errors = {}) => {
-  return errorFactory('ValidationError', message, errors);
+class ValidationError extends BaseError {
+  constructor(message, errors, ...rest) {
+    super('ValidationError', message, errors, ...rest);
+  }
 }
-
 
 module.exports = {
   ValidationError

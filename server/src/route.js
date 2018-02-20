@@ -35,8 +35,18 @@ const sendTokens = (id, message, res, user = null) => {
     });
 };
 
+route.get('/', (req, res, next) => {
+  if(process.env.NODE_ENV === 'dev') {
+    res.json({
+      message: 'hello xauth'
+    });
+  }
+  next();
+});
+
 route.post('/register', (req, res, next) => {
   const user = new User(req.body.user);
+  user.setPassword(req.body.user && req.body.user.password);
   user.save((error) => {
     if (error) {
       return next(error);
@@ -51,7 +61,7 @@ route.post('/login', (req, res, next) => {
   const body = req.body.user;
 
   if (!body || !body.email || !body.password) {
-    next(new ValidationError(INVALID_BODY));
+    next(new ValidationError(INVALID_EMAIL_PASSWORD));
   }
 
   return User.findOne({ email: body.email })
@@ -60,14 +70,14 @@ route.post('/login', (req, res, next) => {
         return next(err);
       }
       if (!user || !user.checkPassword(body.password)) {
-        return next(new Error(INVALID_EMAIL_PASSWORD));
+        return next(new ValidationError(INVALID_EMAIL_PASSWORD));
       }
 
       if (!user.status) {
-        return next(new Error(INACTIVE_EMAIL));
+        return next(new ValidationError(INACTIVE_EMAIL));
       }
       
-      return sendTokens(user.id, LOGIN_SUCCESS, res, getProfile(user));
+      return sendTokens(user.id, LOGIN_SUCCESS, res, user.getJSONFor(user));
     });
 });
 
@@ -87,7 +97,7 @@ route.post('/token', (req, res, next) => {
   auth.validateRefreshToken(refreshToken)
     .then((token) => {
       if (!token) {
-        return next(new Error(INVALID_TOKEN));
+        return next(new ValidationError(INVALID_TOKEN));
       }
       
       return auth.deleteRefreshToken(token._id)
@@ -102,16 +112,17 @@ route.post('/token', (req, res, next) => {
 });
 
 route.get('/profile', auth.authenticate(), (req, res) => {
+  const {user} = req;
   res.json({
-    user: getProfile(req.user)
+    user: user.getJSONFor(user)
   });
 });
 
-route.post('/profile', auth.authenticate(), (req, res) => {
+route.post('/profile', auth.authenticate(), (req, res, next) => {
   const body = req.body.user;
 
   if (!body) {
-    throw new Error(INVALID_BODY);
+    return next(new ValidationError(INVALID_BODY));
   }
   User.findOne({
     _id: req.user._id
@@ -125,10 +136,6 @@ route.post('/profile', auth.authenticate(), (req, res) => {
         text: PROFILE_SAVED,
         type: TYPE_SUCCESS,
       },
-    });
-  }).catch((error) => {
-    return res.status(400).json({
-      errors: formatError(error)
     });
   });
 });

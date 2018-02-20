@@ -5,7 +5,7 @@ const mongoose = require('mongoose'),
       
 const EMAIL_REGEX = /^([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$/;
 
-const userSchema = new mongoose.Schema({
+const user = new mongoose.Schema({
   email: {
     type: String,
     required: [ true, INVALID_EMAIL ],
@@ -41,6 +41,9 @@ const userSchema = new mongoose.Schema({
 });
 
 user.methods.setPassword = function(password) {
+  if(!password || password.length < 8) {
+    return false;
+  }
   this.password = passwordHash.generate(this.password);
 }
 
@@ -56,6 +59,6 @@ user.methods.getJSONFor = function(accessUser) {
   };
 }
 
-const User = mongoose.model('user', userSchema);
+const User = mongoose.model('user', user);
 
 module.exports = User;
