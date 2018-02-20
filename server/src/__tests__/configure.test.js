@@ -1,4 +1,4 @@
-const configure = require('./configure'),
+const configure = require('../configure'),
       assert = require('assert');
 
 describe('configuration', () => {
