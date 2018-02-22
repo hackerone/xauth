@@ -1,4 +1,4 @@
-const mongoose = require('mongoose'),
+const mongoose = require('./db').mongoose,
       config = require('../configure').getConfig();
 
 const refreshTokenSchema = new mongoose.Schema({

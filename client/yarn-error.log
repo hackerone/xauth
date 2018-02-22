@@ -1,0 +1,62 @@
+Arguments: 
+  /Users/ganeshks/.nvm/versions/node/v8.9.4/bin/node /usr/local/Cellar/yarn/1.3.2/libexec/bin/yarn.js
+
+PATH: 
+  /Users/ganeshks/.yarn/bin:/Users/ganeshks/.nvm/versions/node/v8.9.4/bin:~/Library/Android/sdk/build-tools/21.1.2:~/Library/Android/sdk/tools:~/Library/Android/sdk/platform-tools:/apollo/env/SDETools/bin:/Users/ganeshks/bin/google-cloud-sdk/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/X11/bin:/Users/ganeshks/.yarn/bin:~/Library/Android/sdk/build-tools/21.1.2:~/Library/Android/sdk/tools:~/Library/Android/sdk/platform-tools:/apollo/env/SDETools/bin:/Users/ganeshks/bin/google-cloud-sdk/bin:/Users/ganeshks/Library/Android/sdk/platform-tools/:/Users/ganeshks/bin:/Users/ganeshks/Library/Android/sdk/platform-tools/:/Users/ganeshks/bin
+
+Yarn version: 
+  1.3.2
+
+Node version: 
+  8.9.4
+
+Platform: 
+  darwin x64
+
+npm manifest: 
+  {
+    "name": "xauth-client",
+    "version": "1.0.0",
+    "main": "src/index.js",
+    "author": "Ganesh <hackerone@gmail.com>",
+    "license": "MIT",
+    "scripts": {
+      "build": "./node_modules/.bin/webpack",
+      "build:prod": "./node_modules/.bin/webpack -p",
+      "watch": "./node_modules/.bin/webpack --watch",
+      "debug": "./node_modules/.bin/webpack-dev-server",
+      "test": "jest"
+    },
+    "dependencies": {
+      "superagent": "^3.8.2"
+    },
+    "devDependencies": {
+      "babel-core": "^6.26.0",
+      "babel-loader": "^7.1.2",
+      "babel-preset-env": "^1.6.1",
+      "babel-preset-flow": "^6.23.0",
+      "babel-preset-stage-0": "^6.24.1",
+      "eslint": "^4.16.0",
+      "eslint-plugin-flowtype": "^2.42.0",
+      "eslint-plugin-jest": "^21.7.0",
+      "flow-bin": "^0.63.1",
+      "jest": "^22.1.4",
+      "webpack": "^3.10.0",
+      "webpack-dev-server": "^2.11.1"
+    }
+  }
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile
+
+Trace: 
+  SyntaxError: /Users/ganeshks/Library/Caches/Yarn/v1/npm-jest-message-util-22.4.0-e3d861df16d2fee60cb2bc8feac2188a42579642/.yarn-metadata.json: Unexpected end of JSON input
+      at JSON.parse (<anonymous>)
+      at /usr/local/Cellar/yarn/1.3.2/libexec/lib/cli.js:770:59
+      at Generator.next (<anonymous>)
+      at step (/usr/local/Cellar/yarn/1.3.2/libexec/lib/cli.js:92:30)
+      at /usr/local/Cellar/yarn/1.3.2/libexec/lib/cli.js:103:13
+      at <anonymous>

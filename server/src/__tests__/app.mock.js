@@ -1,16 +1,16 @@
 const express = require('express'),
-      xauth = require('../index'),
+      Xauth = require('../index'),
       mongoose = require('mongoose'),
       bodyParser = require('body-parser');
 
 const app = express();
 app.use(bodyParser.json());
 mongoose.connect('mongodb://localhost/xauth_test');
-xauth.init({
+const xauth = new Xauth({
   secret: 'xxxxx',
   issuer: 'xxxxx',
   audience: 'xxxxx',
-});
+}, mongoose);
 
 app.use('/auth', xauth.route);
 

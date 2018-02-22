@@ -1,13 +1,22 @@
-const auth = require('./auth'),
-      configure = require('./configure'),
-      route = require('./route');
+const configure = require('./configure'),
+      db = require('./models/db');
 
-module.exports = {
-  auth,
-  configure,
-  route,
-  init: (config) => {
+class XAuth {
+  get auth() { 
+    return require('./auth');
+  }
+  
+  get route() {
+    return require('./route')
+  }
+  
+  constructor(config, mongoose) {
+    if(mongoose) {
+      db.mongoose = mongoose;
+    }
     configure.setConfig(config);
-    auth.init();
+    this.auth.init();
   }
 }
+
+module.exports = XAuth;

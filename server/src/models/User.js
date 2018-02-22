@@ -1,6 +1,6 @@
-const mongoose = require('mongoose'),
+const mongoose = require('./db').mongoose,
       passwordHash = require('password-hash'),
-      {EMAIL_ALREADY_EXISTS, INVALID_PASSWORD, INVALID_EMAIL} = require('../messages'),
+      {EMAIL_ALREADY_EXISTS, INVALID_PASSWORD, INVALID_EMAIL, PASSWORD_TOO_SMALL} = require('../messages'),
       config = require('../configure').getConfig();
       
 const EMAIL_REGEX = /^([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$/;
@@ -28,6 +28,7 @@ const user = new mongoose.Schema({
   password: {
     type: String,
     required: [ true, INVALID_PASSWORD ],
+    minlength: [8, PASSWORD_TOO_SMALL]
   },
   joinDate: {
     type: Date,
