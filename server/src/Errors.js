@@ -13,6 +13,13 @@ class ValidationError extends BaseError {
   }
 }
 
+class AuthError extends BaseError {
+  constructor(message, errors, ...rest) {
+    super('AuthError', message, errors, ...rest);
+  }
+}
+
 module.exports = {
-  ValidationError
+  ValidationError,
+  AuthError,
 }

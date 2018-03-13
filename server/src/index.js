@@ -5,6 +5,10 @@ class XAuth {
   get auth() { 
     return require('./auth');
   }
+
+  get User() {
+    return require('./models/User');
+  }
   
   get route() {
     return require('./route')

@@ -1,7 +1,9 @@
 const express = require('express'),
+      passport = require('passport'),
       User = require('./models/User'),
       auth = require('./auth'),
-      {ValidationError} = require('./Errors');
+      config = require('./configure').getConfig(),
+      {ValidationError, AuthError} = require('./Errors');
 const {
   LOGIN_SUCCESS,
   REGISTER_SUCCESS,
@@ -15,6 +17,7 @@ const {
   TYPE_ERROR,
   TYPE_SUCCESS,
   PROFILE_SAVED,
+  ACCOUNT_BLOCKED,
 } = require('./messages');
 
 const route = express.Router();
@@ -56,6 +59,16 @@ route.post('/register', (req, res, next) => {
   });
 });
 
+route.get('/google', passport.authenticate('google', { scope: config.scope }));
+route.get('/google/callback', passport.authenticate('google', {session:false}), (req, res) => {
+  const {user} = req;
+  if(user) {
+    return sendTokens(user.id, LOGIN_SUCCESS, res, user.getJSONFor(user));
+  } else {
+    return next(new AuthError('Error logging in'));
+  }
+});
+
 
 route.post('/login', (req, res, next) => {
   const body = req.body.user;
@@ -69,9 +82,19 @@ route.post('/login', (req, res, next) => {
       if (err) {
         return next(err);
       }
+
+      if(user && user.blocked === true) {
+        return next(new ValidationError(ACCOUNT_BLOCKED));
+      }
+
+      if(user && !user.checkPassword(body.password)) {
+        user.recordInvalidAttempt();
+      }
+
       if (!user || !user.checkPassword(body.password)) {
         return next(new ValidationError(INVALID_EMAIL_PASSWORD));
       }
+      
 
       if (!user.status) {
         return next(new ValidationError(INACTIVE_EMAIL));

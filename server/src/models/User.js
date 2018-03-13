@@ -22,13 +22,28 @@ const user = new mongoose.Schema({
           return count === 0;
         });
       },
-      message: EMAIL_ALREADY_EXISTS,
+      message: 'Email already exists',
     }
   },
   password: {
     type: String,
-    required: [ true, INVALID_PASSWORD ],
-    minlength: [8, PASSWORD_TOO_SMALL]
+    required: [function() {
+      if(this.socialLoginType === 'email') {
+        return true;
+      }
+      return false;
+    }, INVALID_PASSWORD],
+    minlength: [8, 'Password has to be atleast 8 characters long.']
+  },
+  socialLoginType: {
+    type: String,
+    default: 'email'
+  },
+  socialLoginId: {
+    type: String,
+  },
+  socialLoginProfile: {
+    type: Object
   },
   joinDate: {
     type: Date,
@@ -36,14 +51,16 @@ const user = new mongoose.Schema({
   },
   role: {
     type: String,
-    default: 'user',
+    default: config.defaultRole,
   },
-  status: { type: String, default: 'active' }
+  status: { type: String, default: config.defaultStatus },
+  blocked: { type: Boolean, default: false},
+  invalidAttemptCount: { type: Number, default: 0 },
 });
 
 user.methods.setPassword = function(password) {
   if(!password || password.length < 8) {
-    return false;
+    return;
   }
   this.password = passwordHash.generate(this.password);
 }
@@ -52,14 +69,51 @@ user.methods.checkPassword = function(password) {
   return passwordHash.verify(password, this.password);
 }
 
+user.methods.recordInvalidAttempt = function() {
+  if(!config.invalidAttemptCountThreshold) {
+    return;
+  }
+
+  this.invalidAttemptCount++;
+  if(this.invalidAttemptCount >= config.invalidAttemptCountThreshold) {
+    this.blocked = true;
+  }
+  return this.save();
+}
+
+user.methods.unblock = function() {
+  this.blocked = false;
+  this.invalidAttemptCount = 0;
+  return this.save();
+}
+
 user.methods.getJSONFor = function(accessUser) {
   return {
     email: this.email,
     joinDate: this.joinDate,
-    role: this.role
+    role: this.role,
+    status: this.status
   };
 }
 
-const User = mongoose.model('user', user);
+user.statics.findOrCreate = async (socialLoginType, profile) => {
+  const existingUser = await User.findOne({socialLoginType, socialLoginId: profile.id}).exec();
+
+  if(existingUser) {
+    return existingUser;
+  }
+  
+  const newUser = new User({
+    email: profile.emails[0].value,
+    socialLoginProfile: profile,
+    socialLoginId: profile.id,
+    socialLoginType,
+  });
+
+  await newUser.save();
+  return newUser;
+}
+
+const User = mongoose.model('User', user);
 
 module.exports = User;
