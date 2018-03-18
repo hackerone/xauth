@@ -42,19 +42,56 @@ class RestClient {
     return this.storage.setItem(this.config.TOKEN_EXPIRY, tokenExpiry);
   }
 
+  handleTokenResponse = ({body}) => {
+    this.token = body.token;
+    this.refreshToken = body.refreshToken;
+    this.tokenExpiry = Date.now() + body.expiresIn;
+    if(body.user) {
+      this.profile = body.user;
+    }
+    return body;
+  }
+
   authRequest(url, email, password) {
-    return http.post(url)
+    return new Promise((resolve, reject) => {
+      http.post(url)
       .set('accept', 'json')
       .send({user: {email, password}})
-      .then(({body}) => {
-        this.token = body.token;
-        this.refreshToken = body.refreshToken;
-        this.tokenExpiry = Date.now() + body.expiresIn;
-        if(body.user) {
-          this.profile = body.user;
+      .end((err, res) => {
+        if(err) {
+          return reject(res.body);
         }
-        return body;
+        return resolve(this.handleTokenResponse(res));
+      })
+    });
+  }
+
+  authSocialRequest(url, code) {
+    return new Promise((resolve, reject) => {
+      http.get(url)
+      .query({code})
+      .end((err, res) => {
+        if(err) {
+          return reject(res.body);
+        }
+        return resolve(this.handleTokenResponse(res));
       });
+    });
+  }
+
+  reAuth() {
+    const {authBaseUrl} = this.config;
+    return new Promise((resolve, reject) => {
+      this.request(false)
+        .post(`${authBaseUrl}/token`)
+        .send({user: { refreshToken: this.refreshToken }})
+        .end((err, res) => {
+          if(err) {
+            return reject(res.body);
+          }
+          return resolve(this.handleTokenResponse(res));
+        });
+    });
   }
 
   login(email, password) {
@@ -67,19 +104,41 @@ class RestClient {
     return this.authRequest(`${authBaseUrl}/register`, email, password);
   }
 
-  logout() {
+  socialLogin(type = 'google', code) {
+    return this.authSocialRequest(`${type}/callback`, code);
+  }
 
+  logout() {
+    this.storage.clear();
+    return Promise.resolve();
   }
 
   auth(request) {
-    console.log(this.token);
+    console.log('using token:',this.token);
     request.set('Authorization', `Bearer ${this.token}`);
     request.set('accept', 'json');
     return request;
   }
 
   checkToken() {
-    return Promise.resolve();
+    if(this.token && this.tokenExpiry < Date.now()) {
+      return Promise.resolve();
+    }
+
+    if(this.refreshToken) {
+      return this.reAuth();
+    }
+
+    return Promise.reject();
+  }
+
+  checkLogin() {
+    const {authBaseUrl} = this.config;
+    return this.request(true)
+      .then(request => {
+        return request.get(`${authBaseUrl}/profile`);
+      })
+      .then(resp => resp.body);
   }
 
   request(auth = true) {
@@ -87,7 +146,7 @@ class RestClient {
       return http.agent();
     }
 
-    console.log(this.token);
+    // console.log(this.token);
     return this.checkToken()
       .then(() => {
         return http.agent()
