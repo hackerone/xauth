@@ -3,7 +3,7 @@ import http from 'superagent';
 class RestClient {
   constructor({
     authBaseUrl = '/auth',
-    storage = sessionStorage,
+    storage = localStorage,
     TOKEN = 'token',
     TOKEN_EXPIRY = 'token_expiry',
     REFRESH_TOKEN = 'refresh_token'
@@ -27,7 +27,7 @@ class RestClient {
   }
 
   get tokenExpiry() {
-    return this.storage.getItem(this.config.TOKEN_EXPIRY);
+    return parseInt(this.storage.getItem(this.config.TOKEN_EXPIRY));
   }
 
   set token(token) {
@@ -45,83 +45,67 @@ class RestClient {
   handleTokenResponse = ({body}) => {
     this.token = body.token;
     this.refreshToken = body.refreshToken;
-    this.tokenExpiry = Date.now() + body.expiresIn;
+    this.tokenExpiry = Date.now() + parseInt(body.expiresIn)*1000;
     if(body.user) {
       this.profile = body.user;
     }
     return body;
   }
 
-  authRequest(url, email, password) {
-    return new Promise((resolve, reject) => {
-      http.post(url)
+  authRequest = (url, email, password) => {
+    return http.post(url)
       .set('accept', 'json')
       .send({user: {email, password}})
-      .end((err, res) => {
-        if(err) {
-          return reject(res.body);
-        }
-        return resolve(this.handleTokenResponse(res));
-      })
-    });
+      .then(this.handleTokenResponse);
   }
 
-  authSocialRequest(url, code) {
-    return new Promise((resolve, reject) => {
-      http.get(url)
+  authSocialRequest = (url, code) => {
+    return http.get(url)
       .query({code})
-      .end((err, res) => {
-        if(err) {
-          return reject(res.body);
-        }
-        return resolve(this.handleTokenResponse(res));
-      });
-    });
+      .then(this.handleTokenResponse);
   }
 
-  reAuth() {
+  reAuth = () => {
     const {authBaseUrl} = this.config;
-    return new Promise((resolve, reject) => {
-      this.request(false)
-        .post(`${authBaseUrl}/token`)
-        .send({user: { refreshToken: this.refreshToken }})
-        .end((err, res) => {
-          if(err) {
-            return reject(res.body);
-          }
-          return resolve(this.handleTokenResponse(res));
-        });
-    });
+    return this.request(false)
+      .post(`${authBaseUrl}/token`)
+      .send({user: { refreshToken: this.refreshToken }})
+      .then(this.handleTokenResponse);
   }
 
-  login(email, password) {
+  login = (email, password) => {
     const {authBaseUrl} = this.config;
     return this.authRequest(`${authBaseUrl}/login`, email, password);
   }
 
-  register(email, password) {
+  register = (email, password) => {
     const {authBaseUrl} = this.config;
     return this.authRequest(`${authBaseUrl}/register`, email, password);
   }
 
-  socialLogin(type = 'google', code) {
-    return this.authSocialRequest(`${type}/callback`, code);
+  socialLogin = (type = 'google', code) => {
+    const {authBaseUrl} = this.config;
+    return this.authSocialRequest(`${authBaseUrl}/${type}/callback`, code);
   }
 
-  logout() {
+  logout = () => {
+    const {TOKEN, REFRESH_TOKEN, TOKEN_EXPIRY} = this.config;
+    this.storage.removeItem(REFRESH_TOKEN);
+    this.storage.removeItem(TOKEN);
+    this.storage.removeItem(TOKEN_EXPIRY);
     this.storage.clear();
     return Promise.resolve();
   }
 
-  auth(request) {
-    console.log('using token:',this.token);
+  auth = (request) => {
     request.set('Authorization', `Bearer ${this.token}`);
     request.set('accept', 'json');
     return request;
   }
 
-  checkToken() {
-    if(this.token && this.tokenExpiry < Date.now()) {
+  checkToken = () => {
+    // console.log(this.token, this.tokenExpiry, Date.now());
+    if(this.token && this.tokenExpiry > Date.now()) {
       return Promise.resolve();
     }
 
@@ -132,7 +116,7 @@ class RestClient {
     return Promise.reject();
   }
 
-  checkLogin() {
+  checkLogin = () => {
     const {authBaseUrl} = this.config;
     return this.request(true)
       .then(request => {
@@ -141,18 +125,21 @@ class RestClient {
       .then(resp => resp.body);
   }
 
-  request(auth = true) {
+  request = (auth = true) => {
     if(!auth) {
       return http.agent();
     }
 
-    // console.log(this.token);
     return this.checkToken()
       .then(() => {
         return http.agent()
           .use((request) => {
             return this.auth(request);
           })
+      })
+      .catch(() => {
+        this.logout();
+        return Promise.reject();
       });
   }
 }

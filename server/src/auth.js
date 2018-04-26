@@ -4,15 +4,19 @@ const passport = require('passport'),
       config = require('./configure').getConfig(),
       User = require('./models/User'),
       RefreshToken = require('./models/RefreshToken'),
-      GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;;
+      GoogleStrategy = require('passport-google-oauth').OAuth2Strategy,
+      FacebookStrategy = require('passport-facebook').Strategy;
 
 const { Strategy, ExtractJwt } = PassportJWT;
 
 const {url} = config;
 
-const {GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, scope} = config.googleAuth || {};
-if(scope.indexOf('email') < 0) {
-  scope.push('email');
+const {GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_SCOPE} = config.googleAuth || {};
+
+const {FACEBOOK_CLIENT_ID, FACEBOOK_CLIENT_SECRET, FACEBOOK_PROFILE_FIELDS, FACEBOOK_SCOPE} = config.facebookAuth || {};
+
+if(GOOGLE_SCOPE.indexOf('email') < 0) {
+  GOOGLE_SCOPE.push('email');
 }
 
 const auth = {
@@ -24,7 +28,7 @@ const auth = {
     opts.issuer = config.issuer;
     opts.audience = config.audience;
     passport.use(new Strategy(opts, (payload, done) => {
-      User.findOne({ _id: payload.id })
+      User.findOne({ _id: payload.id, blocked: false })
         .select([ 'email', 'role', 'roles', 'id', 'status', 'joinDate' ])
         .exec((err, user) => {
           if (err) {
@@ -39,21 +43,54 @@ const auth = {
         clientID: GOOGLE_CLIENT_ID,
         clientSecret: GOOGLE_CLIENT_SECRET,
         callbackURL: `${url}/auth/google/callback`,
-        scope
-      }, async (accessToken, refreshToken, profile, done) => {
+        scope: GOOGLE_SCOPE,
+        passReqToCallback: true
+      }, async (req, accessToken, refreshToken, profile, done) => {
         try {
-          const user = await User.findOrCreate('google', profile);
+          const query = req.query || {};
+          const user = await User.findOrCreate('google', profile, query.invite);
           return done(null, user);
         } catch(err) {
           done(err, null);
         }
       }));
     }
+
+    if(FACEBOOK_CLIENT_ID) {
+      passport.use(new FacebookStrategy({
+        clientID: FACEBOOK_CLIENT_ID,
+        clientSecret: FACEBOOK_CLIENT_SECRET,
+        callbackURL: `${url}/auth/facebook/callback`,
+        profileFields: FACEBOOK_PROFILE_FIELDS,
+        scope: FACEBOOK_SCOPE,
+        passReqToCallback: true
+      }, async (req, accessToken, refreshToken, profile, done) => {
+        try {
+          const query = req.query || {};
+          const user = await User.findOrCreate('facebook', profile, query.invite);
+          return done(null, user);
+        } catch(err) {
+          done(err, null);
+        }
+      }));
+    }
+
     return passport.initialize();
   },
 
+  getUser: (req, res, next) => {
+    return new Promise((resolve, reject) => {
+      passport.authenticate('jwt', {}, (err, user, info) => {
+        if(err) {
+          return reject(err);
+        }
+        return resolve(user);
+      })(req, res, next);
+    });
+  },
+
   authenticate: () => {
-    return passport.authenticate('jwt', { session: false });
+    return passport.authenticate('jwt', {session: false});
   },
 
   encode: (payload, expiresIn = 3600) => {

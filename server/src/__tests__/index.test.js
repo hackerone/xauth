@@ -43,7 +43,7 @@ describe('xauth test', () => {
     return createAuthRequest('/auth/login', 'hello-invalid@gmail.com', 'password')
       .expect(400)
       .then(resp => {
-        assert(resp.body.message.type === 'danger');
+        assert(resp.body.message.type === 'error');
         assert(resp.body.message.text === INVALID_EMAIL_PASSWORD);
       });
   });
@@ -52,7 +52,7 @@ describe('xauth test', () => {
     return createAuthRequest('/auth/login', 'hello-invalid', '')
       .expect(400)
       .then(resp => {
-        assert(resp.body.message.type === 'danger');
+        assert(resp.body.message.type === 'error');
         assert(resp.body.message.text === INVALID_EMAIL_PASSWORD);
       });
   });
@@ -62,7 +62,7 @@ describe('xauth test', () => {
       .expect(400)
       .then(resp => {
         console.log(JSON.stringify(resp.body.errors));
-        assert.equal(resp.body.message.type, 'danger');
+        assert.equal(resp.body.message.type, 'error');
         assert.equal(resp.body.errors.password, INVALID_PASSWORD);
       });
   });

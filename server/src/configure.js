@@ -8,7 +8,7 @@ const _config = {
   defaultRole: 'user',
   defaultStatus: 'active',
   refreshTokenExpiryTime: 3600000,
-  url: 'http://localhost:8080',
+  url: 'http://localhost:2708',
   googleAuth: {
     GOOGLE_CLIENT_ID: null,
     GOOGLE_CLIENT_SECRET: null,

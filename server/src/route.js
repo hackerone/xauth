@@ -69,6 +69,16 @@ route.get('/google/callback', passport.authenticate('google', {session:false}), 
   }
 });
 
+route.get('/facebook', passport.authenticate('facebook', { scope: config.scope }));
+route.get('/facebook/callback', passport.authenticate('facebook', {session:false}), (req, res) => {
+  const {user} = req;
+  if(user) {
+    return sendTokens(user.id, LOGIN_SUCCESS, res, user.getJSONFor(user));
+  } else {
+    return next(new AuthError('Error logging in'));
+  }
+});
+
 
 route.post('/login', (req, res, next) => {
   const body = req.body.user;
@@ -94,12 +104,12 @@ route.post('/login', (req, res, next) => {
       if (!user || !user.checkPassword(body.password)) {
         return next(new ValidationError(INVALID_EMAIL_PASSWORD));
       }
-      
 
       if (!user.status) {
         return next(new ValidationError(INACTIVE_EMAIL));
       }
-      
+
+      user.unblock();
       return sendTokens(user.id, LOGIN_SUCCESS, res, user.getJSONFor(user));
     });
 });
@@ -127,7 +137,6 @@ route.post('/token', (req, res, next) => {
         .then(() => {
           sendTokens(token.userId, TOKEN_SUCCESS, res);
         });
-
     })
     .catch((err) => {
       next(err);
@@ -141,26 +150,27 @@ route.get('/profile', auth.authenticate(), (req, res) => {
   });
 });
 
-route.post('/profile', auth.authenticate(), (req, res, next) => {
-  const body = req.body.user;
+// route.post('/profile', auth.authenticate(), (req, res, next) => {
+//   const body = req.body.user;
 
-  if (!body) {
-    return next(new ValidationError(INVALID_BODY));
-  }
-  User.findOne({
-    _id: req.user._id
-  }).then((user) => {
-    bulkApplyParams(user, body, [ 'email', 'password' ]);
-    return user.save();
-  }).then((user) => {
-    return res.json({
-      id: user.id,
-      message: {
-        text: PROFILE_SAVED,
-        type: TYPE_SUCCESS,
-      },
-    });
-  });
-});
+//   if (!body) {
+//     return next(new ValidationError(INVALID_BODY));
+//   }
+
+//   User.findOne({
+//     _id: req.user._id
+//   }).then((user) => {
+//     bulkApplyParams(user, body, [ 'email', 'password' ]);
+//     return user.save();
+//   }).then((user) => {
+//     return res.json({
+//       id: user.id,
+//       message: {
+//         text: PROFILE_SAVED,
+//         type: TYPE_SUCCESS,
+//       },
+//     });
+//   });
+// });
 
 module.exports = route;

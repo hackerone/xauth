@@ -16,6 +16,6 @@ module.exports = {
   PROFILE_SAVED :'PROFILE_SAVED',
   NOT_AUTHORIZED :'NOT_AUTHORIZED',
   ACCOUNT_BLOCKED: 'ACCOUNT_BLOCKED',
-  TYPE_ERROR :'danger',
+  TYPE_ERROR :'error',
   TYPE_SUCCESS :'success'
 }

@@ -18,7 +18,7 @@ app.use((err, req, res, next) => {
   if(err.name === 'ValidationError') {
     return res.status(400).json({
       message: {
-        type: 'danger',
+        type: 'error',
         text: !err.errors ? err.message : '',
       },
       errors: Object.keys(err.errors || {}).reduce(function(errors, key){
